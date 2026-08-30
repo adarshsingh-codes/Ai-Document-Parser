@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.upload import router as upload_router
+from backend.api.analysis import router as analysis_router
 from backend.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -23,6 +24,7 @@ app.add_middleware(
 )
 
 app.include_router(upload_router)
+app.include_router(analysis_router)
 
 
 @app.get("/")

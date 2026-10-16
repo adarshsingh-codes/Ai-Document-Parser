@@ -1,6 +1,6 @@
 """
-MANUAL / LIVE TEST — makes a real call to the OpenAI API. Costs a small
-amount of money and requires OPENAI_API_KEY to be set. This is
+MANUAL / LIVE TEST — makes a real call to the Gemini API. Costs a small
+amount of money and requires GEMINI_API_KEY to be set. This is
 deliberately named so pytest's default discovery (test_*.py) does NOT
 pick it up automatically — run it explicitly:
 
@@ -48,7 +48,7 @@ def main():
     for i, s in enumerate(sections):
         print(f"  [{i}] {s.title} (level {s.level}, {len(s.children)} children)")
 
-    print("\nCalling real OpenAI API for topic/subtopic extraction...")
+    print("\nCalling real Gemini API for topic/subtopic extraction...")
     try:
         topics = get_topics_and_subtopics(sections)
     except LLMError as e:

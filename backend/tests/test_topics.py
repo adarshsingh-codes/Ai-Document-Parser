@@ -1,8 +1,8 @@
 """
 Unit tests for backend/intelligence/topics.py.
 
-All OpenAI calls are mocked — these tests never touch the network,
-cost money, or require OPENAI_API_KEY. See
+All Gemini calls are mocked — these tests never touch the network,
+cost money, or require GEMINI_API_KEY. See
 backend/tests/manual_test_topics_live.py for a real-API smoke test.
 """
 import json
@@ -16,16 +16,12 @@ from backend.processing.structure import Section
 
 
 def _mock_client_returning(response_dict: dict) -> MagicMock:
-    """Build a mock OpenAI client whose chat.completions.create(...) returns
-    a ChatCompletion-shaped object with the given dict as JSON content."""
+    """Build a mock Gemini client whose models.generate_content(...) returns
+    an object with the given dict JSON-encoded in its .text attribute."""
     client = MagicMock()
-    message = MagicMock()
-    message.content = json.dumps(response_dict)
-    choice = MagicMock()
-    choice.message = message
-    completion = MagicMock()
-    completion.choices = [choice]
-    client.chat.completions.create.return_value = completion
+    response = MagicMock()
+    response.text = json.dumps(response_dict)
+    client.models.generate_content.return_value = response
     return client
 
 
@@ -40,7 +36,7 @@ def test_empty_sections_returns_empty_list_without_calling_llm():
     client = MagicMock()
     result = get_topics_and_subtopics([], client=client)
     assert result == []
-    client.chat.completions.create.assert_not_called()
+    client.models.generate_content.assert_not_called()
 
 
 def test_happy_path_parses_topics_and_subtopics():
@@ -69,10 +65,10 @@ def test_sends_section_content_to_the_llm():
     client = _mock_client_returning(mock_response)
     get_topics_and_subtopics(_sample_sections(), client=client)
 
-    call_kwargs = client.chat.completions.create.call_args.kwargs
-    user_message = call_kwargs["messages"][1]["content"]
-    assert "operating systems" in user_message.lower()
-    assert "Process Management" in user_message
+    call_kwargs = client.models.generate_content.call_args.kwargs
+    prompt = call_kwargs["contents"]
+    assert "operating systems" in prompt.lower()
+    assert "Process Management" in prompt
 
 
 def test_missing_topics_key_raises_llm_error():
@@ -97,13 +93,9 @@ def test_invalid_section_index_raises_llm_error():
 
 def test_non_json_response_raises_llm_error():
     client = MagicMock()
-    message = MagicMock()
-    message.content = "this is not json at all"
-    choice = MagicMock()
-    choice.message = message
-    completion = MagicMock()
-    completion.choices = [choice]
-    client.chat.completions.create.return_value = completion
+    response = MagicMock()
+    response.text = "this is not json at all"
+    client.models.generate_content.return_value = response
 
     with pytest.raises(LLMError):
         get_topics_and_subtopics(_sample_sections(), client=client)
@@ -111,7 +103,7 @@ def test_non_json_response_raises_llm_error():
 
 def test_api_exception_is_wrapped_as_llm_error():
     client = MagicMock()
-    client.chat.completions.create.side_effect = RuntimeError("connection refused")
+    client.models.generate_content.side_effect = RuntimeError("connection refused")
     with pytest.raises(LLMError):
         get_topics_and_subtopics(_sample_sections(), client=client)
 
